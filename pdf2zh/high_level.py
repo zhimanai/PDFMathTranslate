@@ -26,7 +26,7 @@ from pdf2zh.converter import TranslateConverter
 from pdf2zh.doclayout import OnnxModel
 from pdf2zh.pdfinterp import PDFPageInterpreterEx
 
-from pdf2zh.config import ConfigManager
+from pdf2zh.config import ConfigManager, is_offline
 from babeldoc.assets.assets import get_font_and_metadata
 
 NOTO_NAME = "noto"
@@ -336,6 +336,10 @@ def translate(
         if type(file) is str and (
             file.startswith("http://") or file.startswith("https://")
         ):
+            if is_offline():
+                raise PDFValueError(
+                    "Offline mode enabled, remote URLs are not allowed."
+                )
             print("Online files detected, downloading...")
             try:
                 r = requests.get(file, allow_redirects=True)
@@ -417,6 +421,11 @@ def download_remote_fonts(lang: str):
     # docker
     font_path = ConfigManager.get("NOTO_FONT_PATH", Path("/app", font_name).as_posix())
     if not Path(font_path).exists():
+        if is_offline():
+            raise FileNotFoundError(
+                "Offline mode enabled but font file is missing. "
+                "Set NOTO_FONT_PATH or bake fonts into the image."
+            )
         font_path, _ = get_font_and_metadata(font_name)
         font_path = font_path.as_posix()
 

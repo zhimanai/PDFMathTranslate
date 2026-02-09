@@ -1,5 +1,7 @@
 import abc
+import os
 import os.path
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -19,7 +21,7 @@ except ImportError as e:
 
 from huggingface_hub import hf_hub_download
 
-from pdf2zh.config import ConfigManager
+from pdf2zh.config import ConfigManager, is_offline
 
 
 class DocLayoutModel(abc.ABC):
@@ -82,6 +84,16 @@ class OnnxModel(DocLayoutModel):
 
     @staticmethod
     def from_pretrained():
+        pth = os.environ.get("PDF2ZH_ONNX_PATH") or ConfigManager.get(
+            "DOCLAYOUT_ONNX_PATH"
+        )
+        if pth and Path(pth).exists():
+            return OnnxModel(pth)
+        if is_offline():
+            raise FileNotFoundError(
+                "Offline mode enabled but DocLayout ONNX model is missing. "
+                "Set PDF2ZH_ONNX_PATH/DOCLAYOUT_ONNX_PATH or bake the model into the image."
+            )
         pth = get_doclayout_onnx_model_path()
         return OnnxModel(pth)
 

@@ -1,17 +1,28 @@
 services:
   redis:
     image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     ports:
       - "6379:6379"
+    restart: unless-stopped
 
   pdf2zh-api:
-    build:
-      context: .
+    image: harbor.pvg2.zhiman.tech/library/pdf2zh-api:1.9.11-offline-0.1.0
     ports:
       - "11008:11008"
     environment:
       - PYTHONUNBUFFERED=1
+      - PDF2ZH_OFFLINE=1
       - CELERY_BROKER=redis://redis:6379/0
       - CELERY_RESULT=redis://redis:6379/0
+      - OPENAILIKED_BASE_URL=http://101.237.37.116:7350/v1
+      - OPENAILIKED_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      - OPENAILIKED_MODEL=zhiman-chat
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    restart: unless-stopped

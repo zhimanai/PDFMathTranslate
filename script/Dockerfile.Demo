@@ -6,11 +6,20 @@ FROM python:3.12
 WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
+ENV PDF2ZH_OFFLINE=1
+ENV DOCLAYOUT_ONNX_PATH=/app/doclayout_yolo_docstructbench_imgsz1024.onnx
 
 RUN apt-get update && apt-get install -y libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
+ADD "https://github.com/satbyy/go-noto-universal/releases/download/v7.0/GoNotoKurrent-Regular.ttf" /app/
+ADD "https://github.com/timelic/source-han-serif/releases/download/main/SourceHanSerifCN-Regular.ttf" /app/
+ADD "https://github.com/timelic/source-han-serif/releases/download/main/SourceHanSerifTW-Regular.ttf" /app/
+ADD "https://github.com/timelic/source-han-serif/releases/download/main/SourceHanSerifJP-Regular.ttf" /app/
+ADD "https://github.com/timelic/source-han-serif/releases/download/main/SourceHanSerifKR-Regular.ttf" /app/
+
 RUN pip install pdf2zh
+RUN python3 -c "from babeldoc.assets.assets import get_doclayout_onnx_model_path; import shutil; p=get_doclayout_onnx_model_path(); shutil.copy(p, '/app/doclayout_yolo_docstructbench_imgsz1024.onnx')"
 RUN mkdir -p /data
 RUN chmod 777 /data
 RUN mkdir -p /app

@@ -1,7 +1,9 @@
 import logging
 import os
 import json
+import time
 from peewee import Model, SqliteDatabase, AutoField, CharField, TextField, SQL
+from peewee import OperationalError
 from typing import Optional
 
 
@@ -95,21 +97,38 @@ class TranslationCache:
             logger.debug(f"Error setting cache: {e}")
 
 
-def init_db(remove_exists=False):
+def _get_cache_db_path() -> str:
+    env_path = os.environ.get("PDF2ZH_CACHE_DB_PATH")
+    if env_path:
+        return env_path
     cache_folder = os.path.join(os.path.expanduser("~"), ".cache", "pdf2zh")
-    os.makedirs(cache_folder, exist_ok=True)
     # The current version does not support database migration, so add the version number to the file name.
-    cache_db_path = os.path.join(cache_folder, "cache.v1.db")
+    return os.path.join(cache_folder, "cache.v1.db")
+
+
+def init_db(remove_exists=False):
+    cache_db_path = _get_cache_db_path()
+    os.makedirs(os.path.dirname(cache_db_path), exist_ok=True)
     if remove_exists and os.path.exists(cache_db_path):
         os.remove(cache_db_path)
     db.init(
         cache_db_path,
+        timeout=10,
         pragmas={
             "journal_mode": "wal",
-            "busy_timeout": 1000,
+            "busy_timeout": 10000,
         },
     )
-    db.create_tables([_TranslationCache], safe=True)
+    for i in range(10):
+        try:
+            db.create_tables([_TranslationCache], safe=True)
+            return
+        except OperationalError as e:
+            if "locked" not in str(e).lower():
+                raise
+            if i == 9:
+                raise
+            time.sleep(0.5)
 
 
 def init_test_db():

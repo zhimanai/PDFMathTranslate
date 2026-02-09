@@ -6,6 +6,8 @@ WORKDIR /app
 EXPOSE 7860 11008
 
 ENV PYTHONUNBUFFERED=1
+ENV PDF2ZH_OFFLINE=1
+ENV DOCLAYOUT_ONNX_PATH=/app/doclayout_yolo_docstructbench_imgsz1024.onnx
 
 # # Download all required fonts
 ADD "https://github.com/satbyy/go-noto-universal/releases/download/v7.0/GoNotoKurrent-Regular.ttf" /app/
@@ -20,6 +22,8 @@ RUN apt-get update && \
 
 COPY pyproject.toml .
 RUN uv pip install --system --no-cache -r pyproject.toml && babeldoc --version && babeldoc --warmup
+
+RUN python3 -c "from babeldoc.assets.assets import get_doclayout_onnx_model_path; import shutil; p=get_doclayout_onnx_model_path(); shutil.copy(p, '/app/doclayout_yolo_docstructbench_imgsz1024.onnx')"
 
 COPY . .
 
