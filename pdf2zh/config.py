@@ -4,6 +4,9 @@ from threading import RLock  # 改成 RLock
 import os
 import copy
 
+def is_offline() -> bool:
+    return os.environ.get("PDF2ZH_OFFLINE", "").lower() in ("1", "true", "yes")
+
 
 class ConfigManager:
     _instance = None

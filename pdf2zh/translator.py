@@ -22,7 +22,7 @@ from tencentcloud.tmt.v20180321.models import (
 from tencentcloud.tmt.v20180321.tmt_client import TmtClient
 
 from pdf2zh.cache import TranslationCache
-from pdf2zh.config import ConfigManager
+from pdf2zh.config import ConfigManager, is_offline
 
 
 from tenacity import retry, retry_if_exception_type
@@ -848,6 +848,19 @@ class ArgosTranslator(BaseTranslator):
         lang_out = self.lang_map.get(lang_out.lower(), lang_out)
         self.lang_in = lang_in
         self.lang_out = lang_out
+        if is_offline():
+            installed_languages = argostranslate.translate.get_installed_languages()
+            from_lang = list(
+                filter(lambda x: x.code == self.lang_in, installed_languages)
+            )
+            to_lang = list(
+                filter(lambda x: x.code == self.lang_out, installed_languages)
+            )
+            if not from_lang or not to_lang:
+                raise ValueError(
+                    "Offline mode enabled but Argos packages are missing for this language pair."
+                )
+            return
         argostranslate.package.update_package_index()
         available_packages = argostranslate.package.get_available_packages()
         try:
